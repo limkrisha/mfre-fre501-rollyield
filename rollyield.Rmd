@@ -1,0 +1,115 @@
+---
+title: "Module 2F: Backwardation, Contango and the Roll Yield"
+output:
+  bookdown::html_document2:
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(here, dplyr, ggplot2, lubridate, kableExtra)
+```
+
+# Learning Outcomes
+
+By working on this module you should be able to 
+
+- 
+- 
+
+
+# Overview of this Module
+
+Insert overview here
+
+## Diversification Benefits of Commodities
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r correlation, echo=FALSE, fig.cap = "One year rolling return correlations", fig.align='center', out.width = "80%"}
+knitr::include_graphics("Images/tangxiong2012.png")
+```
+:::
+
+::: {.column width="50%"}
+In Figure \@ref(fig:correlation), [Tang and Xiong (2012)](https://www.princeton.edu/~wxiong/papers/commodity.pdf) show the one-year rolling return correlations of oil with various commodities, together with the 95% confidence levels.
+
+  - Assets which have a negative or low correlation with oil are desirable for diversification.
+  - Notice the strong increase in the correlations in the run up to the commodity price boom of the mid 2000s. 
+:::
+::::
+
+# Case Studies:  Two Commodity ETFs
+
+  - Dow Jones-UBS Commodity Index (DJ-UBSCI) created in 2009 -- now called the Bloomberg Commodity Index. Read more from [Investing.com](https://www.investing.com/commodities/dow-jones-ubs-commodity) or [Wikipedia](https://en.wikipedia.org/wiki/Bloomberg_Commodity_Index)
+  - [Powershares DB Agriculture Fund](https://etfdb.com/etf/DBA/#etf-ticker-profile) 
+  - Benchmark with [Bank of Canada's commodity price index](https://www.bankofcanada.ca/rates/price-indexes/bcpi/)
+
+The number of futures contracts held for each commodity are adjusted on a regular basis because price changes will affect the weight a commodity has within a portfolio. 
+
+:::: {.columns}
+
+::: {.column width="20%"}
+```{r dbag, echo=FALSE, fig.cap = "DB Agriculture Index Commodities", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/db_ag.png")
+```
+:::
+
+::: {.column width="80%"}
+```{r bloombergindex, echo=FALSE, fig.cap = "Bloomberg Commodity Index Component Weights", fig.align='center', out.width = "80%"}
+knitr::include_graphics("Images/bloombergindex.png")
+```
+:::
+
+::::
+
+In Figure \@ref(fig:bloombergindex-ts), the Bloomberg Commodity Index (black) performed poorly from 2017 to early 2020. Recent growth is well below the S&P 500 (orange).
+
+```{r bloombergindex-ts, echo=FALSE, fig.cap = "Bloomberg Commodity Index and S&P500", fig.align='center', out.width = "50%"}
+knitr::include_graphics("Images/bloombergindex_ts.png")
+```
+
+[Jonathan Guyer (2012)](https://www.etf.com/publications/journalofindexes/joi-articles/12274-better-beta-in-commodities-indexing.html) blames poor performance of a crude oil ETF on frequent (once per month) contract rolling to avoid delivery. Rolling implies offseting a position in a futures contract set to expire, and taking a position in the next available contract. The author shows in Figure \@ref(fig:etf-rollyield) that rolling in a contango market results in a negative roll yield because for each roll, the investor is selling out of a lower-priced contract and buying into a higher priced contract. 
+
+```{r etf-rollyield, echo=FALSE, fig.cap = "Bloomberg Commodity Index and S&P500", fig.align='center'}
+knitr::include_graphics("Images/etf_rollyield.jpg")
+```
+
+In this lecture, we focus on roll yield for commodity futures. 
+
+# Backwardation
+
+In [Module 2D](https://vercammen.github.io/module2d.html) we used the eight quarter model to show that a USDA forecast for a sizeable weak Q8 carry out demand caused the forward curve to pivot down.
+
+```{r backwardation, echo=FALSE, fig.cap = "Expected Spot Price Path and Forward Curve with Backwardation", fig.align='center'}
+knitr::include_graphics("Images/backwardation.png")
+```
+
+# Contango 
+
+Contango refers to an upward sloping forward curve. 
+
+In [Module 2D](https://vercammen.github.io/module2d.html)  we used the eight quarter model to show that a USDA forecast for a sizeable strong Q8 cary out demand caused the forward curve to pivot up.
+
+```{r contango, echo=FALSE, fig.cap = "Expected Spot Price Path and Forward Curve with Contango", fig.align='center', out.width = "50%"}
+knitr::include_graphics("Images/contango.png")
+```
+
+
+:::: {.columns}
+
+<!-- I put 88% figure size for backwardation just to align the two pictures together!  -->
+::: {.column width="50%"}
+```{r backwardation2, echo=FALSE, fig.cap = "Expected Spot Price Path and Forward Curve with **Backwardation**", fig.align='center', out.width = "88%"}
+knitr::include_graphics("Images/backwardation.png")
+```
+:::
+
+::: {.column width="50%"}
+```{r contango2, echo=FALSE, fig.cap = "Expected Spot Price Path and Forward Curve with **Contango**", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/contango.png")
+```
+:::
+
+::::
