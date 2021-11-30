@@ -7,7 +7,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(here, dplyr, ggplot2, lubridate, kableExtra)
+pacman::p_load(here, dplyr, ggplot2, lubridate, kableExtra, readxl, janitor, tidyverse)
 ```
 
 # Learning Outcomes
@@ -113,3 +113,183 @@ knitr::include_graphics("Images/contango.png")
 :::
 
 ::::
+
+# COVID Impacts on Corn Forward Curves
+
+Figure \@ref(fig:corn) shows 
+
+```{r corn, echo=FALSE, fig.cap = "Contango (July 2020) and Backwardation (June 2021) in CME Corn Futures", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/cme_cornfutures.png")
+```
+
+# Case Study: Crude Oil
+
+Spot prices for oil come from the [U.S. E.I.A.](https://www.eia.gov/dnav/pet/hist/rwtcD.htm)
+
+Figure \@ref(fig:wti-contango) shows the WTI Basis and March 2021 futures for a contango scenario
+
+```{r wti-contango, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Contango**", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/wti_contango.png")
+```
+
+<!-- Make sure the excel spreadsheet is not opened, else you will get an error. 
+Skip = 2 is so that the data frame starts at row 3.  
+clean_names() function come from {janitor} package that removes white space in var names -->
+
+```{r, eval = T, echo = F, message = F}
+# to recreate Combined sheet
+crude_spot <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = 2, skip = 2) %>%
+  clean_names() %>%
+  rename(spot = cushing_ok_wti_spot_price_fob_dollars_per_barrel) %>%
+  mutate(time = as.Date(date, format = c("%Y-%m-%d"))) %>%
+  filter(time >= "2018-09-14" & time <= "2019-08-20") %>%
+  select(time, spot)
+
+# create data_cleaning() function that takes in `sheet` as an argument, cleans the var names, makes sure 'time' is recgonized as a date format, filters to the relevant dates, and select  the relevant columns only
+# could not make the `last` column name = sheet name :( so did this per df 
+data_cleaning <- function(sheet){
+  sheet <- sheet %>% clean_names() %>%
+    # var Time becomes time because clean_names() will change vars to small caps
+    mutate(time = as.Date(time, format = c("%Y-%m-%d"))) %>%
+    filter(time >= "2018-09-14" & time <= "2019-08-20") %>%
+    select(time, last)
+}
+
+
+oct_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Oct 18")) %>% rename(oct_18 = last)
+nov_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Nov 18")) %>% rename(nov_18 = last)
+dec_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Dec 18")) %>% rename(dec_18 = last)
+jan_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Jan 19")) %>% rename(jan_19= last)
+feb_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Feb 19")) %>% rename(feb_19 = last)
+mar_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Mar 19")) %>% rename(mar_19 = last)
+apr_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "April 19")) %>% rename(apr_19 = last)
+may_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "May 19")) %>% rename(may_19 = last)
+jun_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Jun 19")) %>% rename(jun_19 = last)
+jul_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "July 19")) %>% rename(jul_19 = last)
+aug_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Aug 19")) %>% rename(aug_19 = last)
+sep_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Sep 19")) %>% rename(sep_19 = last)
+
+
+# Merging multiple data frames together 
+# https://stackoverflow.com/questions/14096814/merging-a-lot-of-data-frames
+combined <- Reduce(function(x, y) merge(x, y, all=TRUE), list(crude_spot, oct_18, nov_18,
+                                                             dec_18, jan_19, feb_19, mar_19,
+                                                             apr_19, may_19, jun_19, jul_19,
+                                                             aug_19, sep_19))
+
+# cant get the dual axis to work
+# in ggplot2, the secondary axis must be scaled from the primary axis. But in our case I couldn't figure out how to do the negative one
+```
+
+The contango over this time period is obvious.
+
+```{r}
+forward_curve <- combined %>% filter(time == "2018-10-22") %>%
+  select(nov_18, dec_18, jan_19, feb_19, mar_19) %>%
+  pivot_longer(everything(), 
+               names_to = "time",
+               values_to = "futures") %>%
+  mutate(time = as.Date(paste0("01_", time), format = "%d_%b_%y")) # need to have a day to be considered a date
+
+ggplot(forward_curve, aes(x = time, y = futures)) + 
+  geom_col(fill = "lightblue") + 
+  coord_cartesian(ylim = c(69,70)) + 
+  labs(title = "Forward Curve for CME Corn: Oct 22, 2018", subtitle = "Last trading day for November contract", y = "$/barrel", x = "Date") +
+  scale_x_date(date_labels = "%b %y") + 
+  theme_classic() +
+  geom_text(aes(label = futures), vjust = -0.5, size = 3)
+```
+
+Figure \@ref(fig:wti-backwardation) shows the WTI Basis and March 2021 futures for a contango scenario
+
+```{r wti-backwardation, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Contango**", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/wti_backwardation.png")
+```
+         
+
+The backwardation over this time period is obvious.
+
+```{r, message = F}
+# create spot prices for relevant 2021 dates
+crude_spot21 <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = 2, skip = 2) %>%
+  clean_names() %>%
+  rename(spot = cushing_ok_wti_spot_price_fob_dollars_per_barrel) %>%
+  mutate(time = as.Date(date, format = c("%Y-%m-%d"))) %>%
+  filter(time >= "2021-07-15" & time <= "2021-11-19") %>%
+  select(time, spot)
+
+# create data cleaning function for 2021 data
+data_cleaning21 <- function(sheet){
+  sheet <- sheet %>% clean_names() %>%
+    # var Time becomes time because clean_names() will change vars to small caps
+    mutate(time = as.Date(time, format = c("%Y-%m-%d"))) %>%
+    filter(time >= "2021-07-15" & time <= "2021-11-19") %>%
+    select(time, last)
+}
+
+# read in files 
+aug_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Aug 21")) %>% rename(aug_21 = last)
+sep_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Sep 21")) %>% rename(sep_21 = last)
+oct_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Oct 21")) %>% rename(oct_21 = last)
+nov_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Nov 21")) %>% rename(nov_21 = last)
+dec_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Dec 21")) %>% rename(dec_21 = last)
+
+# combine 2021 data
+combined_21 <- Reduce(function(x, y) merge(x, y, all=TRUE), list(crude_spot21, aug_21, sep_21, oct_21, nov_21, dec_21))
+
+# create df for forward curve with backwardation
+forward_curve_back <- combined_21%>% filter(time == "2021-08-20") %>%
+  select(sep_21, oct_21, nov_21, dec_21) %>%
+  pivot_longer(everything(), 
+               names_to = "time",
+               values_to = "futures") %>%
+  mutate(time = as.Date(paste0("01_", time), format = "%d_%b_%y")) # need to have a day to be considered a date
+
+ggplot(forward_curve_back, aes(x = time, y = futures)) + 
+  geom_col(fill = "lightblue") + 
+  coord_cartesian(ylim = c(61,62)) + 
+  labs(title = "Forward Curve for CME Corn: Aug 20, 2021", subtitle = "Last trading day for September contract", y = "$/barrel", x = "Date") +
+  scale_x_date(date_labels = "%b %y") + 
+  theme_classic() +
+  geom_text(aes(label = futures), vjust = -0.5, size = 3)
+```
+
+# Constructing a Futures Joined Prices
+
+## Roll Adjustment 
+
+$Cumulative Roll Adjust_i = \sum_{j=1}^{i} RollAdjust_j$ 
+
+We have 5 pricing periods:
+
+  1. before first roll
+  2. between first and second roll 
+  3. between second and third roll
+  4. between third and fourth roll
+  5. after the fifth roll
+  
+## Joining the Futures Price
+
+  1. Pricing Period 1 
+    
+    - Joined Price = Back Futures Price
+  2. Pricing Period 2
+    
+    - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_1$
+  3. Pricing Period 3 
+    
+    - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_2$
+  4. Pricing Period 4 
+    
+    - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_3$
+  5. Pricing Period 5 
+    
+    - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_4$
+    
+    
+```{r}
+# index value of last non-NA value in Aug
+
+test <- combined_21$aug_21 - combined_21$sep_21
+```
+
