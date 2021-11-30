@@ -7,7 +7,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(here, dplyr, ggplot2, lubridate, kableExtra, readxl, janitor, tidyverse)
+pacman::p_load(here, dplyr, ggplot2, lubridate, kableExtra, readxl, janitor, tidyverse, purrr)
 ```
 
 # Learning Outcomes
@@ -70,9 +70,9 @@ In Figure \@ref(fig:bloombergindex-ts), the Bloomberg Commodity Index (black) pe
 knitr::include_graphics("Images/bloombergindex_ts.png")
 ```
 
-[Jonathan Guyer (2012)](https://www.etf.com/publications/journalofindexes/joi-articles/12274-better-beta-in-commodities-indexing.html) blames poor performance of a crude oil ETF on frequent (once per month) contract rolling to avoid delivery. Rolling implies offseting a position in a futures contract set to expire, and taking a position in the next available contract. The author shows in Figure \@ref(fig:etf-rollyield) that rolling in a contango market results in a negative roll yield because for each roll, the investor is selling out of a lower-priced contract and buying into a higher priced contract. 
+In this [article](https://www.etf.com/publications/journalofindexes/joi-articles/12274-better-beta-in-commodities-indexing.html), the author blames the poor performance of a crude oil ETF on frequent (once per month) contract rolling to avoid delivery. Rolling implies offseting a position in a futures contract set to expire, and taking a position in the next available contract. In Figure \@ref(fig:etf-rollyield) the author explains that rolling in a contango market results in a negative roll yield because for each roll, the investor is selling out of a lower-priced contract and buying into a higher priced contract. 
 
-```{r etf-rollyield, echo=FALSE, fig.cap = "Bloomberg Commodity Index and S&P500", fig.align='center'}
+```{r etf-rollyield, echo=FALSE, fig.cap = "Bloomberg Commodity Index and S&P500", fig.align='center', out.width = "80%"}
 knitr::include_graphics("Images/etf_rollyield.jpg")
 ```
 
@@ -81,6 +81,8 @@ In this lecture, we focus on roll yield for commodity futures.
 # Backwardation
 
 In [Module 2D](https://vercammen.github.io/module2d.html) we used the eight quarter model to show that a USDA forecast for a sizeable weak Q8 carry out demand caused the forward curve to pivot down.
+
+In Figure \@ref(fig:backwardation), we can see that the further out in time we go, the lower the expected spot price. As an example, let F1 = December contract, F2 = March contract, and F3 = May contract. Figure \@ref(fig:backwardation) shows that in time $t$, the expected spot price of the December contract is higher than the expected spot price of the March contract, and the expected spot price of the March contract is higher than the expected spot price of the May contract.
 
 ```{r backwardation, echo=FALSE, fig.cap = "Expected Spot Price Path and Forward Curve with Backwardation", fig.align='center'}
 knitr::include_graphics("Images/backwardation.png")
@@ -92,11 +94,13 @@ Contango refers to an upward sloping forward curve.
 
 In [Module 2D](https://vercammen.github.io/module2d.html)  we used the eight quarter model to show that a USDA forecast for a sizeable strong Q8 cary out demand caused the forward curve to pivot up.
 
+In Figure \@ref(fig:contango), we can see that the further out in time we go, the higher the expected spot price. As an example, let F1 = December contract, F2 = March contract, and F3 = May contract. Figure \@ref(fig:contango) shows that in time $t$, the expected spot price of the December contract is lower than the expected spot price of the March contract, and the expected spot price of the March contract is lower than the expected price of the May contract. 
+
 ```{r contango, echo=FALSE, fig.cap = "Expected Spot Price Path and Forward Curve with Contango", fig.align='center', out.width = "50%"}
 knitr::include_graphics("Images/contango.png")
 ```
 
-
+<!-- Only if you want to put these two images side by side!  -->
 :::: {.columns}
 
 <!-- I put 88% figure size for backwardation just to align the two pictures together!  -->
@@ -116,19 +120,22 @@ knitr::include_graphics("Images/contango.png")
 
 # COVID Impacts on Corn Forward Curves
 
-Figure \@ref(fig:corn) shows 
+The blue bars in Figure \@ref(fig:corn) show the futures prices of different corn contracts on July 2, 2020 (right in the middle of the COVID-19 pandemic), and the orange bars show the futures prices of different corn contracts on June 2, 2021 (market was rebounding from COVID-19 pandemic). 
 
-```{r corn, echo=FALSE, fig.cap = "Contango (July 2020) and Backwardation (June 2021) in CME Corn Futures", fig.align='center', out.width = "100%"}
+There was a strong contango market due to COVID-19 in July 2020. And as the markets rebound, we observe a backwardated market with current price higher than futures prices trading at a later date. 
+
+```{r corn, echo=FALSE, fig.cap = "Contango (July 2020) and Backwardation (June 2021) in CME Corn Futures", fig.align='center', out.width = "60%"}
 knitr::include_graphics("Images/cme_cornfutures.png")
 ```
+# Roll Yield 
 
 # Case Study: Crude Oil
 
 Spot prices for oil come from the [U.S. E.I.A.](https://www.eia.gov/dnav/pet/hist/rwtcD.htm)
 
-Figure \@ref(fig:wti-contango) shows the WTI Basis and March 2021 futures for a contango scenario
+Figure \@ref(fig:wti-contango) shows the WTI Basis and March 2021 futures for a contango scenario. In this case, the basis is negative. This means that the cash price is lower than the first to expire futures price, which is then lower than the next following to expire futures price. The negative values of the basis suggest that we are in a contango market. 
 
-```{r wti-contango, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Contango**", fig.align='center', out.width = "100%"}
+```{r wti-contango, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Contango**", fig.align='center', out.width = "60%"}
 knitr::include_graphics("Images/wti_contango.png")
 ```
 
@@ -136,80 +143,38 @@ knitr::include_graphics("Images/wti_contango.png")
 Skip = 2 is so that the data frame starts at row 3.  
 clean_names() function come from {janitor} package that removes white space in var names -->
 
-```{r, eval = T, echo = F, message = F}
+Here are some steps to clean the data from the Crude Futures dataset. **We can also move this part to the appendix?** 
+
+```{r, message = F}
 # to recreate Combined sheet
 crude_spot <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = 2, skip = 2) %>%
-  clean_names() %>%
+  clean_names() %>% # fix the column names 
   rename(spot = cushing_ok_wti_spot_price_fob_dollars_per_barrel) %>%
-  mutate(time = as.Date(date, format = c("%Y-%m-%d"))) %>%
-  filter(time >= "2018-09-14" & time <= "2019-08-20") %>%
-  select(time, spot)
+  mutate(time = as.Date(date, format = c("%Y-%m-%d"))) %>% # fix the dates
+  filter(time >= "2018-09-14" & time <= "2019-08-20") %>% #filter to relevant dates 
+  select(time, spot) #select relevant columns
 
 # create data_cleaning() function that takes in `sheet` as an argument, cleans the var names, makes sure 'time' is recgonized as a date format, filters to the relevant dates, and select  the relevant columns only
-# could not make the `last` column name = sheet name :( so did this per df 
+# could not make the `last` column name = sheet name :( so did additional cleaning per sheeet
 data_cleaning <- function(sheet){
   sheet <- sheet %>% clean_names() %>%
-    # var Time becomes time because clean_names() will change vars to small caps
     mutate(time = as.Date(time, format = c("%Y-%m-%d"))) %>%
     filter(time >= "2018-09-14" & time <= "2019-08-20") %>%
     select(time, last)
 }
 
-
-oct_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Oct 18")) %>% rename(oct_18 = last)
+# export only nov18 to mar19 sheets
 nov_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Nov 18")) %>% rename(nov_18 = last)
 dec_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Dec 18")) %>% rename(dec_18 = last)
 jan_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Jan 19")) %>% rename(jan_19= last)
 feb_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Feb 19")) %>% rename(feb_19 = last)
 mar_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Mar 19")) %>% rename(mar_19 = last)
-apr_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "April 19")) %>% rename(apr_19 = last)
-may_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "May 19")) %>% rename(may_19 = last)
-jun_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Jun 19")) %>% rename(jun_19 = last)
-jul_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "July 19")) %>% rename(jul_19 = last)
-aug_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Aug 19")) %>% rename(aug_19 = last)
-sep_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Sep 19")) %>% rename(sep_19 = last)
-
 
 # Merging multiple data frames together 
 # https://stackoverflow.com/questions/14096814/merging-a-lot-of-data-frames
-combined <- Reduce(function(x, y) merge(x, y, all=TRUE), list(crude_spot, oct_18, nov_18,
-                                                             dec_18, jan_19, feb_19, mar_19,
-                                                             apr_19, may_19, jun_19, jul_19,
-                                                             aug_19, sep_19))
+combined <- Reduce(function(x, y) merge(x, y, all=TRUE), list(crude_spot, nov_18,
+                                                             dec_18, jan_19, feb_19, mar_19))
 
-# cant get the dual axis to work
-# in ggplot2, the secondary axis must be scaled from the primary axis. But in our case I couldn't figure out how to do the negative one
-```
-
-The contango over this time period is obvious.
-
-```{r}
-forward_curve <- combined %>% filter(time == "2018-10-22") %>%
-  select(nov_18, dec_18, jan_19, feb_19, mar_19) %>%
-  pivot_longer(everything(), 
-               names_to = "time",
-               values_to = "futures") %>%
-  mutate(time = as.Date(paste0("01_", time), format = "%d_%b_%y")) # need to have a day to be considered a date
-
-ggplot(forward_curve, aes(x = time, y = futures)) + 
-  geom_col(fill = "lightblue") + 
-  coord_cartesian(ylim = c(69,70)) + 
-  labs(title = "Forward Curve for CME Corn: Oct 22, 2018", subtitle = "Last trading day for November contract", y = "$/barrel", x = "Date") +
-  scale_x_date(date_labels = "%b %y") + 
-  theme_classic() +
-  geom_text(aes(label = futures), vjust = -0.5, size = 3)
-```
-
-Figure \@ref(fig:wti-backwardation) shows the WTI Basis and March 2021 futures for a contango scenario
-
-```{r wti-backwardation, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Contango**", fig.align='center', out.width = "100%"}
-knitr::include_graphics("Images/wti_backwardation.png")
-```
-         
-
-The backwardation over this time period is obvious.
-
-```{r, message = F}
 # create spot prices for relevant 2021 dates
 crude_spot21 <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = 2, skip = 2) %>%
   clean_names() %>%
@@ -236,22 +201,68 @@ dec_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"
 
 # combine 2021 data
 combined_21 <- Reduce(function(x, y) merge(x, y, all=TRUE), list(crude_spot21, aug_21, sep_21, oct_21, nov_21, dec_21))
+```
 
+In \@ref(fig:forward-contango), we can see that the the forward curve is sloping upward. 
+
+```{r forward-contango, echo=FALSE, fig.cap = "Forward Curve in a Contango Market", fig.align='center', out.width = "50%"}
+knitr::include_graphics("Images/forward_contango.png")
+```
+
+```{r, eval = F}
+forward_curve <- combined %>% filter(time == "2018-10-22") %>%
+  select(nov_18, dec_18, jan_19, feb_19, mar_19) %>%
+  pivot_longer(everything(), 
+               names_to = "time",
+               values_to = "futures") %>%
+  # need to have a day to be considered a date
+  mutate(time = as.Date(paste0("01_", time), format = "%d_%b_%y")) 
+
+forward_contango <- ggplot(forward_curve, aes(x = time, y = futures)) + 
+  geom_col(fill = "lightblue") + 
+  coord_cartesian(ylim = c(69,69.75)) + 
+  labs(title = "Forward Curve for WTI Crude Oil: Oct 22, 2018", subtitle = "Last trading day for November contract", y = "$/barrel", x = "Date") +
+  scale_x_date(date_labels = "%b %y") + 
+  theme_classic() +
+  geom_text(aes(label = futures), vjust = -0.5, size = 3)
+
+# ggsave(forward_contango, file = here("Images", "forward_contango.png"))
+```
+Figure \@ref(fig:wti-backwardation) shows the WTI Basis and March 2021 futures for a contango scenario. In this case, the basis is falling but it is positive, which means that the cash price is higher than the next to expire futures contract, which has a price higher than the next following to expire futures contract.
+
+```{r wti-backwardation, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Contango**", fig.align='center', out.width = "60%"}
+knitr::include_graphics("Images/wti_backwardation.png")
+```
+
+## Backwardation scenario
+
+In \@ref(fig:forward-backwardation), we can see that the the forward curve is sloping downward. 
+
+```{r forward-backwardation, echo=FALSE, fig.cap = "Forward Curve in a Contango Market", fig.align='center', out.width = "50%"}
+knitr::include_graphics("Images/forward_backwardation.png")
+```
+
+```{r, message = F, eval = F}
 # create df for forward curve with backwardation
-forward_curve_back <- combined_21%>% filter(time == "2021-08-20") %>%
+forward_curve_back <- combined_21 %>% 
+  filter(time == "2021-08-20") %>%
   select(sep_21, oct_21, nov_21, dec_21) %>%
   pivot_longer(everything(), 
                names_to = "time",
                values_to = "futures") %>%
-  mutate(time = as.Date(paste0("01_", time), format = "%d_%b_%y")) # need to have a day to be considered a date
+  # need to have a day to be considered a date
+  mutate(time = as.Date(paste0("01_", time), format = "%d_%b_%y")) 
 
-ggplot(forward_curve_back, aes(x = time, y = futures)) + 
+forward_backwardation <- ggplot(forward_curve_back, aes(x = time, y = futures)) + 
   geom_col(fill = "lightblue") + 
-  coord_cartesian(ylim = c(61,62)) + 
-  labs(title = "Forward Curve for CME Corn: Aug 20, 2021", subtitle = "Last trading day for September contract", y = "$/barrel", x = "Date") +
+  coord_cartesian(ylim = c(61,62.5)) + 
+  labs(title = "Forward Curve for WTI Crude Oil: Aug 20, 2021", 
+       subtitle = "Last trading day for September contract", y = "$/barrel", x = "Date") +
   scale_x_date(date_labels = "%b %y") + 
   theme_classic() +
   geom_text(aes(label = futures), vjust = -0.5, size = 3)
+
+# ggsave(forward_backwardation, file = here("Images", "forward_backwardation.png"))
 ```
 
 # Constructing a Futures Joined Prices
@@ -271,25 +282,47 @@ We have 5 pricing periods:
 ## Joining the Futures Price
 
   1. Pricing Period 1 
-    
     - Joined Price = Back Futures Price
   2. Pricing Period 2
-    
     - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_1$
   3. Pricing Period 3 
-    
     - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_2$
   4. Pricing Period 4 
-    
     - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_3$
   5. Pricing Period 5 
-    
     - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_4$
-    
-    
+
 ```{r}
-# index value of last non-NA value in Aug
+combined_21 <- combined_21 %>%
+  # create columns that calculate the difference in futures prices. These are roll adjustments
+  mutate(roll1 = aug_21 - sep_21,
+         roll2 = sep_21 - oct_21,
+         roll3 = oct_21 - nov_21,
+         roll4 = nov_21 - dec_21) %>%
+  # calculate index of each roll
+  # max(which(!is.na(data$roll1))) = gives us the index of the largest non NA value in roll1 
+  mutate(i_roll1 = max(which(!is.na(roll1))),
+         i_roll2 = max(which(!is.na(roll2))),
+         i_roll3 = max(which(!is.na(roll3))),
+         i_roll4 = max(which(!is.na(roll4)))) %>%
+  # add an index var for use in the next function
+  mutate(index = c(1:nrow(combined_21))) %>%
+  # create column called `current` that contains the next to expire futures price
+  mutate(current = ifelse(index < i_roll1, aug_21,
+                          ifelse(index < i_roll2, sep_21,
+                                 ifelse(index < i_roll3, oct_21,
+                                        ifelse(index < i_roll4, nov_21, dec_21)))))
+# calc value of the cumulative roll
+cum_roll1 <- combined_21$roll1[max(which(!is.na(combined_21$roll1)))]
+cum_roll2 <- cum_roll1 + combined_21$roll2[max(which(!is.na(combined_21$roll2)))]
+cum_roll3 <- cum_roll2 + combined_21$roll3[max(which(!is.na(combined_21$roll3)))]
+cum_roll4 <- cum_roll3 + combined_21$roll4[max(which(!is.na(combined_21$roll4)))]
 
-test <- combined_21$aug_21 - combined_21$sep_21
+combined_21 <- combined_21 %>% 
+  mutate(cum_roll = ifelse(index < i_roll1, 0, 
+                           ifelse(index < i_roll2, cum_roll1,
+                                  ifelse(index < i_roll3, cum_roll2,
+                                         ifelse(index < i_roll4, cum_roll3, cum_roll4))))) %>%
+  # add cum_roll with current price 
+  mutate(joined = current + cum_roll)
 ```
-
