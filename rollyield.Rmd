@@ -125,8 +125,25 @@ The blue bars in Figure \@ref(fig:corn) show the futures prices of different cor
 There was a strong contango market due to COVID-19 in July 2020. And as the markets rebound, we observe a backwardated market with current price higher than futures prices trading at a later date. 
 
 ```{r corn, echo=FALSE, fig.cap = "Contango (July 2020) and Backwardation (June 2021) in CME Corn Futures", fig.align='center', out.width = "60%"}
-knitr::include_graphics("Images/cme_cornfutures.png")
+knitr::include_graphics("Images/corn_forward_curve.png")
 ```
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r corn-20, echo=FALSE, fig.cap = "Contango (July 2020) in CME Corn Futures", fig.align='center', out.width = "80%"}
+knitr::include_graphics("Images/corn_forward_curve_20.png")
+```
+:::
+
+::: {.column width="50%"}
+```{r corn-21, echo=FALSE, fig.cap = "Backwardation (June 2021) in CME Corn Futures", fig.align='center', out.width = "80%"}
+knitr::include_graphics("Images/corn_forward_curve_21.png")
+```
+:::
+
+::::
+
 # Roll Yield 
 
 # Case Study: Crude Oil
@@ -139,130 +156,58 @@ Figure \@ref(fig:wti-contango) shows the WTI Basis and March 2021 futures for a 
 knitr::include_graphics("Images/wti_contango.png")
 ```
 
-<!-- Make sure the excel spreadsheet is not opened, else you will get an error. 
-Skip = 2 is so that the data frame starts at row 3.  
-clean_names() function come from {janitor} package that removes white space in var names -->
+:::: {.columns}
 
-Here are some steps to clean the data from the Crude Futures dataset. **We can also move this part to the appendix?** 
-
-```{r, message = F}
-# to recreate Combined sheet
-crude_spot <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = 2, skip = 2) %>%
-  clean_names() %>% # fix the column names 
-  rename(spot = cushing_ok_wti_spot_price_fob_dollars_per_barrel) %>%
-  mutate(time = as.Date(date, format = c("%Y-%m-%d"))) %>% # fix the dates
-  filter(time >= "2018-09-14" & time <= "2019-08-20") %>% #filter to relevant dates 
-  select(time, spot) #select relevant columns
-
-# create data_cleaning() function that takes in `sheet` as an argument, cleans the var names, makes sure 'time' is recgonized as a date format, filters to the relevant dates, and select  the relevant columns only
-# could not make the `last` column name = sheet name :( so did additional cleaning per sheeet
-data_cleaning <- function(sheet){
-  sheet <- sheet %>% clean_names() %>%
-    mutate(time = as.Date(time, format = c("%Y-%m-%d"))) %>%
-    filter(time >= "2018-09-14" & time <= "2019-08-20") %>%
-    select(time, last)
-}
-
-# export only nov18 to mar19 sheets
-nov_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Nov 18")) %>% rename(nov_18 = last)
-dec_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Dec 18")) %>% rename(dec_18 = last)
-jan_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Jan 19")) %>% rename(jan_19= last)
-feb_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Feb 19")) %>% rename(feb_19 = last)
-mar_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = "Mar 19")) %>% rename(mar_19 = last)
-
-# Merging multiple data frames together 
-# https://stackoverflow.com/questions/14096814/merging-a-lot-of-data-frames
-combined <- Reduce(function(x, y) merge(x, y, all=TRUE), list(crude_spot, nov_18,
-                                                             dec_18, jan_19, feb_19, mar_19))
-
-# create spot prices for relevant 2021 dates
-crude_spot21 <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), sheet = 2, skip = 2) %>%
-  clean_names() %>%
-  rename(spot = cushing_ok_wti_spot_price_fob_dollars_per_barrel) %>%
-  mutate(time = as.Date(date, format = c("%Y-%m-%d"))) %>%
-  filter(time >= "2021-07-15" & time <= "2021-11-19") %>%
-  select(time, spot)
-
-# create data cleaning function for 2021 data
-data_cleaning21 <- function(sheet){
-  sheet <- sheet %>% clean_names() %>%
-    # var Time becomes time because clean_names() will change vars to small caps
-    mutate(time = as.Date(time, format = c("%Y-%m-%d"))) %>%
-    filter(time >= "2021-07-15" & time <= "2021-11-19") %>%
-    select(time, last)
-}
-
-# read in files 
-aug_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Aug 21")) %>% rename(aug_21 = last)
-sep_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Sep 21")) %>% rename(sep_21 = last)
-oct_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Oct 21")) %>% rename(oct_21 = last)
-nov_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Nov 21")) %>% rename(nov_21 = last)
-dec_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), sheet = "Dec 21")) %>% rename(dec_21 = last)
-
-# combine 2021 data
-combined_21 <- Reduce(function(x, y) merge(x, y, all=TRUE), list(crude_spot21, aug_21, sep_21, oct_21, nov_21, dec_21))
+::: {.column width="50%"}
+```{r wti-basis-contango, echo=FALSE, fig.cap = "WTI Crude Oil Basis **with Contango**", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/wti_basis_contango.png")
 ```
+:::
 
-In \@ref(fig:forward-contango), we can see that the the forward curve is sloping upward. 
+:::{.column width="50%"}
+```{r wti-futures-contango, echo=FALSE, fig.cap = "WTI Crude Oil Futures **with Contango**", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/wti_futures_contango.png")
+```
+:::
+
+::::
+
+In Figure \@ref(fig:forward-contango), we can see that the the forward curve is sloping upward. 
 
 ```{r forward-contango, echo=FALSE, fig.cap = "Forward Curve in a Contango Market", fig.align='center', out.width = "50%"}
 knitr::include_graphics("Images/forward_contango.png")
 ```
 
 ```{r, eval = F}
-forward_curve <- combined %>% filter(time == "2018-10-22") %>%
-  select(nov_18, dec_18, jan_19, feb_19, mar_19) %>%
-  pivot_longer(everything(), 
-               names_to = "time",
-               values_to = "futures") %>%
-  # need to have a day to be considered a date
-  mutate(time = as.Date(paste0("01_", time), format = "%d_%b_%y")) 
-
-forward_contango <- ggplot(forward_curve, aes(x = time, y = futures)) + 
-  geom_col(fill = "lightblue") + 
-  coord_cartesian(ylim = c(69,69.75)) + 
-  labs(title = "Forward Curve for WTI Crude Oil: Oct 22, 2018", subtitle = "Last trading day for November contract", y = "$/barrel", x = "Date") +
-  scale_x_date(date_labels = "%b %y") + 
-  theme_classic() +
-  geom_text(aes(label = futures), vjust = -0.5, size = 3)
-
-# ggsave(forward_contango, file = here("Images", "forward_contango.png"))
 ```
 Figure \@ref(fig:wti-backwardation) shows the WTI Basis and March 2021 futures for a contango scenario. In this case, the basis is falling but it is positive, which means that the cash price is higher than the next to expire futures contract, which has a price higher than the next following to expire futures contract.
 
-```{r wti-backwardation, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Contango**", fig.align='center', out.width = "60%"}
+```{r wti-backwardation, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Backwardation**", fig.align='center', out.width = "60%"}
 knitr::include_graphics("Images/wti_backwardation.png")
 ```
 
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r wti-basis-back, echo=FALSE, fig.cap = "WTI Crude Oil Basis **with Backwardation**", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/wti_basis_back.png")
+```
+:::
+
+:::{.column width="50%"}
+```{r wti-futures-back, echo=FALSE, fig.cap = "WTI Crude Oil Futures **with Backwardation**", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/wti_futures_back.png")
+```
+:::
+
+::::
+
 ## Backwardation scenario
 
-In \@ref(fig:forward-backwardation), we can see that the the forward curve is sloping downward. 
+In Figure\@ref(fig:forward-backwardation), we can see that the the forward curve is sloping downward. 
 
 ```{r forward-backwardation, echo=FALSE, fig.cap = "Forward Curve in a Contango Market", fig.align='center', out.width = "50%"}
 knitr::include_graphics("Images/forward_backwardation.png")
-```
-
-```{r, message = F, eval = F}
-# create df for forward curve with backwardation
-forward_curve_back <- combined_21 %>% 
-  filter(time == "2021-08-20") %>%
-  select(sep_21, oct_21, nov_21, dec_21) %>%
-  pivot_longer(everything(), 
-               names_to = "time",
-               values_to = "futures") %>%
-  # need to have a day to be considered a date
-  mutate(time = as.Date(paste0("01_", time), format = "%d_%b_%y")) 
-
-forward_backwardation <- ggplot(forward_curve_back, aes(x = time, y = futures)) + 
-  geom_col(fill = "lightblue") + 
-  coord_cartesian(ylim = c(61,62.5)) + 
-  labs(title = "Forward Curve for WTI Crude Oil: Aug 20, 2021", 
-       subtitle = "Last trading day for September contract", y = "$/barrel", x = "Date") +
-  scale_x_date(date_labels = "%b %y") + 
-  theme_classic() +
-  geom_text(aes(label = futures), vjust = -0.5, size = 3)
-
-# ggsave(forward_backwardation, file = here("Images", "forward_backwardation.png"))
 ```
 
 # Constructing a Futures Joined Prices
@@ -293,36 +238,33 @@ We have 5 pricing periods:
     - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_4$
 
 ```{r}
-combined_21 <- combined_21 %>%
-  # create columns that calculate the difference in futures prices. These are roll adjustments
-  mutate(roll1 = aug_21 - sep_21,
-         roll2 = sep_21 - oct_21,
-         roll3 = oct_21 - nov_21,
-         roll4 = nov_21 - dec_21) %>%
-  # calculate index of each roll
-  # max(which(!is.na(data$roll1))) = gives us the index of the largest non NA value in roll1 
-  mutate(i_roll1 = max(which(!is.na(roll1))),
-         i_roll2 = max(which(!is.na(roll2))),
-         i_roll3 = max(which(!is.na(roll3))),
-         i_roll4 = max(which(!is.na(roll4)))) %>%
-  # add an index var for use in the next function
-  mutate(index = c(1:nrow(combined_21))) %>%
-  # create column called `current` that contains the next to expire futures price
-  mutate(current = ifelse(index < i_roll1, aug_21,
-                          ifelse(index < i_roll2, sep_21,
-                                 ifelse(index < i_roll3, oct_21,
-                                        ifelse(index < i_roll4, nov_21, dec_21)))))
-# calc value of the cumulative roll
-cum_roll1 <- combined_21$roll1[max(which(!is.na(combined_21$roll1)))]
-cum_roll2 <- cum_roll1 + combined_21$roll2[max(which(!is.na(combined_21$roll2)))]
-cum_roll3 <- cum_roll2 + combined_21$roll3[max(which(!is.na(combined_21$roll3)))]
-cum_roll4 <- cum_roll3 + combined_21$roll4[max(which(!is.na(combined_21$roll4)))]
+combined_21 <- readRDS(here("Data", "combined_21.RDS"))
 
-combined_21 <- combined_21 %>% 
-  mutate(cum_roll = ifelse(index < i_roll1, 0, 
-                           ifelse(index < i_roll2, cum_roll1,
-                                  ifelse(index < i_roll3, cum_roll2,
-                                         ifelse(index < i_roll4, cum_roll3, cum_roll4))))) %>%
-  # add cum_roll with current price 
-  mutate(joined = current + cum_roll)
+options(knitr.kable.NA ='')
+
+combined_21 %>% select(time, spot, aug_21:dec_21, cum_roll, joined) %>%
+  filter((time >= "2021-07-15" & time <= "2021-07-21") | (time >= "2021-08-19" & time <= "2021-08-23") | (time >= "2021-09-20" & time <= "2021-09-22") | (time >= "2021-10-19" & time <= "2021-10-21") | time == "2021-11-19") %>% 
+  kbl() %>% kable_styling(full_width = F)
 ```
+
+## Verification that joined futures prices correctly calculates cumulative profits
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r, echo = F}
+investor_a <- readRDS(here("Data", "investor_a.RDS"))
+
+investor_a %>% kbl(caption = "Investor A") %>% kable_styling(full_width = F) %>% row_spec(3, bold = T)
+```
+:::
+
+::: {.column width="50%"}
+```{r, echo = F}
+investor_b <- readRDS(here("Data", "investor_b.RDS"))
+
+investor_b %>% kbl(caption = "Investor B") %>% kable_styling(full_width = F) %>% row_spec(6, bold = T)
+```
+:::
+::::
+
