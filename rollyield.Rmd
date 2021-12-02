@@ -237,17 +237,49 @@ We have 5 pricing periods:
   5. Pricing Period 5 
     - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_4$
 
-```{r}
+```{r joinedprices, echo=FALSE, fig.cap = "Forward Curve in a Contango Market", fig.align='center', out.width = "50%"}
+combined_21 <- readRDS(here("Data", "combined_21.RDS"))
+knitr::include_graphics("Images/joined_futures.png")
+```
+
+<!-- This is just clearer than the saved image  -->
+```{r, echo = F}
 combined_21 <- readRDS(here("Data", "combined_21.RDS"))
 
 options(knitr.kable.NA ='')
-
 combined_21 %>% select(time, spot, aug_21:dec_21, cum_roll, joined) %>%
-  filter((time >= "2021-07-15" & time <= "2021-07-21") | (time >= "2021-08-19" & time <= "2021-08-23") | (time >= "2021-09-20" & time <= "2021-09-22") | (time >= "2021-10-19" & time <= "2021-10-21") | time == "2021-11-19") %>% 
-  kbl() %>% kable_styling(full_width = F)
+  filter((time >= "2021-07-15" & time <= "2021-07-21") | 
+           (time >= "2021-08-19" & time <= "2021-08-23") | 
+           (time >= "2021-09-20" & time <= "2021-09-22") | 
+           (time >= "2021-10-19" & time <= "2021-10-21") | 
+           time == "2021-11-19") %>% 
+  mutate(cum_roll = cell_spec(round(cum_roll, 2), align = "center", 
+                              color = ifelse(time == "2021-07-20" |
+                                               time == "2021-08-20"|
+                                               time == "2021-09-21" |
+                                               time == "2021-10-20", "red", "black"))) %>%
+  # escape = F will need to work for the conditional color formatting
+  kbl(escape = F, 
+      col.names = c("Time", "Spot", "Aug 21", "Sep 21", "Oct 21", "Nov 21", "Dec 21", "Cum Roll", "Joined")) %>% 
+  kable_styling(full_width = F)
 ```
 
+In pricing period 1 (July 15, 2021), the joined price is the back futures price of `r combined_21$aug_21[combined_21$time == "2021-07-15"]`.
+
+On July 20, 2021, the August contract expires and the index rolls over to the September contract. To calculate the joined price, we take the back price (about to expire contract) minus the front price (upcoming contract). For example, to get the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-07-20"]` on July 20, 2021, we take the August contract price minus the September contract price, or `r combined_21$aug_21[combined_21$time == "2021-07-20"]` - `r combined_21$sep_21[combined_21$time == "2021-07-20"]`. To get the joined price, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-07-20"]` + `r combined_21$sep_21[combined_21$time == "2021-07-20"]` = `r combined_21$joined[combined_21$time == "2021-07-20"]`.
+
+On August 20, 2021, the September contract expires and the index rolls over to the October contract. To calculate the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-08-20"]`, we take the September contract price minus the October contract price and the previous roll, or (`r combined_21$sep_21[combined_21$time == "2021-08-20"]` - `r combined_21$oct_21[combined_21$time == "2021-08-20"]`) + `r combined_21$cum_roll[combined_21$time == "2021-07-20"]`. To get the joined price, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-08-20"]` + `r combined_21$oct_21[combined_21$time == "2021-08-20"]` = `r combined_21$joined[combined_21$time == "2021-08-20"]`.
+
+On September 21, 2021, the October contract expires and the index rolls over to the November contract. To calculate the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-09-21"]` on September 21, 2021, we take the October contract price minus the November contract price and the previous roll, or (`r combined_21$oct_21[combined_21$time == "2021-09-21"]` - `r combined_21$nov_21[combined_21$time == "2021-09-21"]`) + `r combined_21$cum_roll[combined_21$time == "2021-08-20"]`. To get the joined price on the September roll, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-09-21"]` + `r combined_21$nov_21[combined_21$time == "2021-09-21"]` = `r combined_21$joined[combined_21$time == "2021-09-21"]`.
+
 ## Verification that joined futures prices correctly calculates cumulative profits
+
+We can verify that the joined futures prices correctly calculates cumulative profits. 
+
+Let's the the example of two investors. Investor A takes a long position in the joined futures at the beginning date of July 15, 2021 and offsets this position at the ending date of November 19, 2021. 
+
+Investor B rolls a long futures position through the five futures contracts, replacing the long position in the back contract with a long position in the front contract when the back contract expires. 
+
 
 :::: {.columns}
 
@@ -264,6 +296,101 @@ investor_a %>% kbl(caption = "Investor A") %>% kable_styling(full_width = F) %>%
 investor_b <- readRDS(here("Data", "investor_b.RDS"))
 
 investor_b %>% kbl(caption = "Investor B") %>% kable_styling(full_width = F) %>% row_spec(6, bold = T)
+```
+:::
+::::
+
+From Table \@ref(tab:return-compare), we see that 
+
+```{r return-compare, echo = F}
+options(knitr.kable.NA ='') # this converts NA to empty string
+
+combined_21 %>% select(time, spot, aug_21:dec_21, cum_roll, joined) %>%
+  filter(time == "2021-07-15" | time == "2021-07-16" |
+           time == "2021-11-18" | time == "2021-11-19") %>% 
+  # conditional formatting 
+  mutate(spot = cell_spec(round(spot, 2), align = "center", 
+                          background = ifelse(time == "2021-07-15" | time == "2021-11-19",
+                                              "green", "white"),
+                          color = ifelse(time == "2021-07-15" | time == "2021-11-19", 
+                                         "white", "black"))) %>%
+  mutate(aug_21 = replace_na(aug_21, '')) %>% 
+           mutate(aug_21 = cell_spec(aug_21, align = "center",
+                            background = ifelse(time == "2021-07-15", "green", "white"),
+                             color = ifelse(time == "2021-07-15", "white", "black"))) %>%
+  mutate(dec_21 = cell_spec(round(dec_21, 2), align = "center",
+                            background = ifelse(time == "2021-11-19", "green", "white"),
+                            color = ifelse(time == "2021-11-19", "white", "black"))) %>%
+  mutate(joined = cell_spec(round(joined, 2), align = "center",
+                            background = ifelse(time == "2021-07-15" | time == "2021-11-19",
+                                                "orange", "white"),
+                            color = ifelse(time == "2021-07-15" | time == "2021-11-19", "white", "black"))) %>%
+  # escape = F will need to work for the conditional color formatting
+  kbl(escape = F, 
+      col.names = c("Time", "Spot", "Aug 21", "Sep 21", "Oct 21", "Nov 21", "Dec 21", "Cum Roll", "Joined"), 
+      caption = "Comparing Investor A's and B's return") %>% 
+  kable_styling(full_width = F)
+```
+
+An investor who held spot crude oil would earn `r combined_21$spot[combined_21$time == "2021-11-19"]` - `r combined_21$spot[combined_21$time == "2021-07-15"]` =  `r combined_21$spot[combined_21$time == "2021-11-19"] - combined_21$spot[combined_21$time == "2021-07-15"]` 
+
+An investor who held joined futures would earn `r combined_21$joined[combined_21$time == "2021-11-19"]` - `r combined_21$joined[combined_21$time == "2021-07-15"]` = `r combined_21$joined[combined_21$time == "2021-11-19"] - combined_21$joined[combined_21$time == "2021-07-15"]`
+
+# Roll Yield Defined
+
+From Table \@ref(tab:roll-yield-defined), we see that the profits from holding joined futures minus the profits from holding spot (e.g. 5.37-4.44 = 0.93) is approximately equal to the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-10-20"]` (in bold). 
+
+```{r roll-yield-defined, echo = F}
+options(knitr.kable.NA ='') # this converts NA to empty string
+
+combined_21 %>% select(time, spot, aug_21:dec_21, cum_roll, joined) %>%
+  filter(time == "2021-07-15" | time == "2021-10-19" |
+           time == "2021-10-20" | time == "2021-10-21") %>% 
+  # conditional formatting 
+  mutate(spot = cell_spec(round(spot, 2), align = "center", 
+                          background = ifelse(time == "2021-07-15", "green", "white"),
+                          color = ifelse(time == "2021-07-15", "white", "black"))) %>%
+  mutate(aug_21 = replace_na(aug_21, '')) %>% 
+  mutate(aug_21 = cell_spec(aug_21, align = "center",
+                            background = ifelse(time == "2021-07-15", "green", "white"),
+                            color = ifelse(time == "2021-07-15", "white", "black"))) %>%
+  mutate(nov_21 = replace_na(nov_21, '')) %>%
+  mutate(nov_21 = cell_spec(nov_21, align = "center", 
+                            background = ifelse(time == "2021-10-20", "yellow", "white"))) %>% 
+  mutate(dec_21 = cell_spec(round(dec_21, 2), align = "center",
+                            background = ifelse(time == "2021-10-20", "yellow", "white"))) %>% 
+  mutate(cum_roll = cell_spec(round(cum_roll, 2), align = "center",
+                              background = ifelse(time == "2021-10-20", "yellow", "white"),
+                              bold = ifelse(time == "2021-10-20", T, F))) %>%
+  mutate(joined = cell_spec(round(joined, 2), align = "center",
+                            background = ifelse(time == "2021-07-15", "orange", 
+                                                ifelse(time == "2021-10-20", "yellow", "white")),
+                            color = ifelse(time == "2021-07-15" | time == "2021-11-19", "white", "black"))) %>%
+           # escape = F will need to work for the conditional color formatting
+           kbl(escape = F, 
+               col.names = c("Time", "Spot", "Aug 21", "Sep 21", "Oct 21", "Nov 21", "Dec 21", "Cum Roll", "Joined"),
+               caption = "Roll Yield Calculation") %>% 
+           kable_styling(full_width = F)
+```
+
+
+# Contango Market
+
+Figure \@ref(fig:contango-left) shows
+
+Figure \@ref(fig:contango-right) shows
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r contango-left, echo=FALSE, fig.cap = "Adjusted Spot and Joined Futures, Oct 18-Dec 18", fig.align='center', out.width = "80%"}
+knitr::include_graphics("Images/contango_left.png")
+```
+:::
+
+::: {.column width="50%"}
+```{r contango-right, echo=FALSE, fig.cap = "Adjusted Spot and Joined Futures, Dec 18-Feb 19", fig.align='center', out.width = "80%"}
+knitr::include_graphics("Images/contango_right.png")
 ```
 :::
 ::::
