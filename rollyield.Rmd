@@ -26,13 +26,13 @@ Insert overview here
 
 :::: {.columns}
 
-::: {.column width="50%"}
-```{r correlation, echo=FALSE, fig.cap = "One year rolling return correlations", fig.align='center', out.width = "80%"}
+::: {.column width="60%"}
+```{r correlation, echo=FALSE, fig.cap = "One year rolling return correlations", fig.align='center', out.width = "90%"}
 knitr::include_graphics("Images/tangxiong2012.png")
 ```
 :::
 
-::: {.column width="50%"}
+::: {.column width="40%"}
 In Figure \@ref(fig:correlation), [Tang and Xiong (2012)](https://www.princeton.edu/~wxiong/papers/commodity.pdf) show the one-year rolling return correlations of oil with various commodities, together with the 95% confidence levels.
 
   - Assets which have a negative or low correlation with oil are desirable for diversification.
@@ -101,8 +101,12 @@ knitr::include_graphics("Images/contango.png")
 ```
 
 <!-- Only if you want to put these two images side by side!  -->
-:::: {.columns}
 
+Figure \@ref(fig:backwardation2) shows that in time $t$, the expected spot price of the December contract is higher than the expected spot price of the March contract, and the expected spot price of the March contract is higher than the expected spot price of the May contract.
+
+Figure \@ref(fig:contango2) shows that in time $t$, the expected spot price of the December contract is lower than the expected spot price of the March contract, and the expected spot price of the March contract is lower than the expected price of the May contract.
+
+:::: {.columns}
 <!-- I put 88% figure size for backwardation just to align the two pictures together!  -->
 ::: {.column width="50%"}
 ```{r backwardation2, echo=FALSE, fig.cap = "Expected Spot Price Path and Forward Curve with **Backwardation**", fig.align='center', out.width = "88%"}
@@ -115,7 +119,6 @@ knitr::include_graphics("Images/backwardation.png")
 knitr::include_graphics("Images/contango.png")
 ```
 :::
-
 ::::
 
 # COVID Impacts on Corn Forward Curves
@@ -178,8 +181,6 @@ In Figure \@ref(fig:forward-contango), we can see that the the forward curve is 
 knitr::include_graphics("Images/forward_contango.png")
 ```
 
-```{r, eval = F}
-```
 Figure \@ref(fig:wti-backwardation) shows the WTI Basis and March 2021 futures for a contango scenario. In this case, the basis is falling but it is positive, which means that the cash price is higher than the next to expire futures contract, which has a price higher than the next following to expire futures contract.
 
 ```{r wti-backwardation, echo=FALSE, fig.cap = "WTI Crude Oil Futures and Basis **with Backwardation**", fig.align='center', out.width = "60%"}
@@ -237,16 +238,22 @@ We have 5 pricing periods:
   5. Pricing Period 5 
     - Joined Price = Front Futures Price + Cumulative Roll $Adjustment_4$
 
-```{r joinedprices, echo=FALSE, fig.cap = "Forward Curve in a Contango Market", fig.align='center', out.width = "50%"}
+Figure \@ref(fig:joinedprices) show how the cumulative roll and the joined prices are calculated. 
+
+```{r joinedprices, echo=FALSE, fig.cap = "Joined Futures with Backwardation Data", fig.align='center', out.width = "50%"}
 combined_21 <- readRDS(here("Data", "combined_21.RDS"))
 knitr::include_graphics("Images/joined_futures.png")
 ```
 
 <!-- This is just clearer than the saved image  -->
-```{r, echo = F}
+
+Table \@ref(tab:joined-futures) show how the cumulative roll and the joined prices are calculated. 
+
+```{r joined-futures, echo = F}
 combined_21 <- readRDS(here("Data", "combined_21.RDS"))
 
 options(knitr.kable.NA ='')
+
 combined_21 %>% select(time, spot, aug_21:dec_21, cum_roll, joined) %>%
   filter((time >= "2021-07-15" & time <= "2021-07-21") | 
            (time >= "2021-08-19" & time <= "2021-08-23") | 
@@ -260,17 +267,18 @@ combined_21 %>% select(time, spot, aug_21:dec_21, cum_roll, joined) %>%
                                                time == "2021-10-20", "red", "black"))) %>%
   # escape = F will need to work for the conditional color formatting
   kbl(escape = F, 
-      col.names = c("Time", "Spot", "Aug 21", "Sep 21", "Oct 21", "Nov 21", "Dec 21", "Cum Roll", "Joined")) %>% 
+      col.names = c("Time", "Spot", "Aug 21", "Sep 21", "Oct 21", "Nov 21", "Dec 21", "Cum Roll", "Joined"), caption = "Joined Futures with Backwardation Data", 
+      align = 'c') %>% 
   kable_styling(full_width = F)
 ```
 
 In pricing period 1 (July 15, 2021), the joined price is the back futures price of `r combined_21$aug_21[combined_21$time == "2021-07-15"]`.
 
-On July 20, 2021, the August contract expires and the index rolls over to the September contract. To calculate the joined price, we take the back price (about to expire contract) minus the front price (upcoming contract). For example, to get the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-07-20"]` on July 20, 2021, we take the August contract price minus the September contract price, or `r combined_21$aug_21[combined_21$time == "2021-07-20"]` - `r combined_21$sep_21[combined_21$time == "2021-07-20"]`. To get the joined price, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-07-20"]` + `r combined_21$sep_21[combined_21$time == "2021-07-20"]` = `r combined_21$joined[combined_21$time == "2021-07-20"]`.
+To calculate the joined price, we take the back price (about to expire contract) minus the front price (upcoming contract). For example, on July 20, 2021, the August contract expires and the index rolls over to the September contract. To calculate the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-07-20"]`, we take the August contract price minus the September contract price on July 20^th^, or `r combined_21$aug_21[combined_21$time == "2021-07-20"]` - `r combined_21$sep_21[combined_21$time == "2021-07-20"]`. To get the joined price, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-07-20"]` + `r combined_21$sep_21[combined_21$time == "2021-07-20"]` = `r combined_21$joined[combined_21$time == "2021-07-20"]`.
 
-On August 20, 2021, the September contract expires and the index rolls over to the October contract. To calculate the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-08-20"]`, we take the September contract price minus the October contract price and the previous roll, or (`r combined_21$sep_21[combined_21$time == "2021-08-20"]` - `r combined_21$oct_21[combined_21$time == "2021-08-20"]`) + `r combined_21$cum_roll[combined_21$time == "2021-07-20"]`. To get the joined price, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-08-20"]` + `r combined_21$oct_21[combined_21$time == "2021-08-20"]` = `r combined_21$joined[combined_21$time == "2021-08-20"]`.
+On August 20, 2021, the September contract expires and the index rolls over to the October contract. To calculate the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-08-20"]`, we take the September contract price minus the October contract price on August 20^th^ plus the value of the previous roll, or (`r combined_21$sep_21[combined_21$time == "2021-08-20"]` - `r combined_21$oct_21[combined_21$time == "2021-08-20"]`) + `r combined_21$cum_roll[combined_21$time == "2021-07-20"]`. To get the joined price, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-08-20"]` + `r combined_21$oct_21[combined_21$time == "2021-08-20"]` = `r combined_21$joined[combined_21$time == "2021-08-20"]`.
 
-On September 21, 2021, the October contract expires and the index rolls over to the November contract. To calculate the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-09-21"]` on September 21, 2021, we take the October contract price minus the November contract price and the previous roll, or (`r combined_21$oct_21[combined_21$time == "2021-09-21"]` - `r combined_21$nov_21[combined_21$time == "2021-09-21"]`) + `r combined_21$cum_roll[combined_21$time == "2021-08-20"]`. To get the joined price on the September roll, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-09-21"]` + `r combined_21$nov_21[combined_21$time == "2021-09-21"]` = `r combined_21$joined[combined_21$time == "2021-09-21"]`.
+On September 21, 2021, the October contract expires and the index rolls over to the November contract. To calculate the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-09-21"]`, we take the October contract price minus the November contract price on September 21^st^ plus the value of the previous roll, or (`r combined_21$oct_21[combined_21$time == "2021-09-21"]` - `r combined_21$nov_21[combined_21$time == "2021-09-21"]`) + `r combined_21$cum_roll[combined_21$time == "2021-08-20"]`. To get the joined price on the September roll, we add the cumulative roll to the front price, e.g. `r combined_21$cum_roll[combined_21$time == "2021-09-21"]` + `r combined_21$nov_21[combined_21$time == "2021-09-21"]` = `r combined_21$joined[combined_21$time == "2021-09-21"]`.
 
 ## Verification that joined futures prices correctly calculates cumulative profits
 
@@ -338,8 +346,9 @@ An investor who held joined futures would earn `r combined_21$joined[combined_21
 
 # Roll Yield Defined
 
-From Table \@ref(tab:roll-yield-defined), we see that the profits from holding joined futures minus the profits from holding spot (e.g. 5.37-4.44 = 0.93) is approximately equal to the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-10-20"]` (in bold). 
+From Table \@ref(tab:roll-yield-defined), we see that the profits from holding joined futures minus the profits from holding spot (e.g. 5.37 - 4.44 = 0.93) is approximately equal to the cumulative roll of `r combined_21$cum_roll[combined_21$time == "2021-10-20"]` (in bold). 
 
+<!-- By putting echo = F, the code runs but is not displayed on the rendered file.  -->
 ```{r roll-yield-defined, echo = F}
 options(knitr.kable.NA ='') # this converts NA to empty string
 
@@ -373,8 +382,40 @@ combined_21 %>% select(time, spot, aug_21:dec_21, cum_roll, joined) %>%
            kable_styling(full_width = F)
 ```
 
+# Backwardated Market
+
+Figure \@ref(fig:back-futures-spot) shows that the spot and joined futures began with the same value (not shown in graph), but the ending gap of `r combined_21$joined[combined_21$time == "2021-11-19"]` - `r combined_21$spot[combined_21$time == "2021-11-19"]` = `r combined_21$joined[combined_21$time == "2021-11-19"] - combined_21$spot[combined_21$time == "2021-11-19"]` is roughly equal to the `r combined_21$cum_roll[combined_21$time == "2021-10-20"]` cumulative roll yield shown in Table \@ref(tab:roll-yield-defined). 
+
+```{r back-futures-spot, echo=FALSE, fig.cap = "Joined Futures vs. Spot Price in a Backwardated Market (July 2021 - Nov 2021)", fig.align='center', out.width = "60%"}
+knitr::include_graphics("Images/back_futures_spot.png")
+```
+
+** Figures \@ref(fig:back-left) and \@ref(fig:back-right) are not in the PPT slides **
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r back-left, echo=FALSE, fig.cap = "Adjusted Spot and Joined Futures, July 2021 - Sep 2021", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/back_left.png")
+```
+:::
+
+::: {.column width="50%"}
+```{r back-right, echo=FALSE, fig.cap = "Adjusted Spot and Joined Futures, Sep 2021 - Nov 2021", fig.align='center', out.width = "100%"}
+knitr::include_graphics("Images/back_right.png")
+```
+:::
+::::
+
 
 # Contango Market
+
+Figure \@ref(fig:con-futures-spot) shows 
+
+```{r con-futures-spot, echo=FALSE, fig.cap = "Joined Futures vs. Spot Price in a Contango Market (Oct 2018 - Feb 2019)", fig.align='center', out.width = "60%"}
+knitr::include_graphics("Images/contango_futures_spot.png")
+```
+
 
 Figure \@ref(fig:contango-left) shows
 
@@ -383,15 +424,21 @@ Figure \@ref(fig:contango-right) shows
 :::: {.columns}
 
 ::: {.column width="50%"}
-```{r contango-left, echo=FALSE, fig.cap = "Adjusted Spot and Joined Futures, Oct 18-Dec 18", fig.align='center', out.width = "80%"}
+```{r contango-left, echo=FALSE, fig.cap = "Adjusted Spot and Joined Futures, Oct 2018 - Dec 2018", fig.align='center', out.width = "80%"}
 knitr::include_graphics("Images/contango_left.png")
 ```
 :::
 
 ::: {.column width="50%"}
-```{r contango-right, echo=FALSE, fig.cap = "Adjusted Spot and Joined Futures, Dec 18-Feb 19", fig.align='center', out.width = "80%"}
+```{r contango-right, echo=FALSE, fig.cap = "Adjusted Spot and Joined Futures, Dec 2018 - Feb 2019", fig.align='center', out.width = "80%"}
 knitr::include_graphics("Images/contango_right.png")
 ```
 :::
 ::::
+
+Figure \@ref(fig:carry-cost) 
+
+```{r carry-cost, echo=FALSE, fig.cap = "Graph with Carry Cost", fig.align='center', out.width = "75%"}
+knitr::include_graphics("Images/carry_graph.png")
+```
 
