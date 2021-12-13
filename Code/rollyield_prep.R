@@ -9,8 +9,8 @@ pacman::p_load(here, dplyr, ggplot2, lubridate, kableExtra, readxl, janitor,
 ###########################################################
 
 # Load in the 'Graphs' sheet of the Excel file
-  # make sure Excel file is not opened. You will get an error otherwise.  
-compare <- read_excel(here("Data", "Wheat Forward Curve Compare.xlsx"), 
+# make sure Excel file is not opened. You will get an error otherwise.  
+compare <- read_excel(here("Data", "Corn Forward Curve Compare.xlsx"), 
                       sheet = "Graphs", range = "B1:F9") %>% # read selected range only 
   select(c(1,2,5)) %>% # select by col index since names are too long
   clean_names() %>%
@@ -24,24 +24,28 @@ compare <- read_excel(here("Data", "Wheat Forward Curve Compare.xlsx"),
 # corn_june21 is the oil forward curve on july 2021
 
 # note: str_wrap(x, 3) from {stringr} allows me to add a line break in the x labels 
-  # after 3 characters, which is the length of the month names
+# after 3 characters, which is the length of the month names
 
-corn_july20 <- ggplot(compare, aes(x = stringr::str_wrap(contracts, 3), y = july_2_2020)) +
+corn_july20  <- ggplot(compare, aes(x = contracts, y = july_2_2020)) +
   geom_col(fill = "lightblue") +
   coord_cartesian(ylim = c(3, 3.80)) + # restricted the y axis limits
   theme_classic(base_size = 15) + # increase size of axis and labels
   geom_text(aes(label = round(july_2_2020,2)), vjust = -0.5, size = 3) + # add value labels
-  labs(x = "Contracts", y = "Futures: July 2, 2020 ($/bu)")
+  labs(x = "Contracts", y = "Futures: July 2, 2020 ($/bu)") +
+  scale_x_discrete(labels = function(contracts) str_wrap(contracts, width = 3))
+corn_july20
 
-corn_june21 <- ggplot(compare, aes(x = stringr::str_wrap(contracts, 3), y = june_2_2021)) +
+corn_june21 <- ggplot(compare, aes(x = contracts, y = june_2_2021)) +
   geom_col(fill = "orange") +
   coord_cartesian(ylim = c(4.5, 6.8)) +
   theme_classic(base_size = 15) +
   geom_text(aes(label = round(june_2_2021,2)), vjust = -0.5, size = 3) +
-  labs(x = "Contracts", y = "Futures: July 2, 2020 ($/bu)")
+  labs(x = "Contracts", y = "Futures: July 2, 2020 ($/bu)") + 
+  scale_x_discrete(labels = function(contracts) str_wrap(contracts, width = 3))
+corn_june21
 
 # corn_futures will do a grouped bar chart similar to the notes, 
-  # but not with a dual axis
+# but not with a dual axis
 
 # first we reshape the data to a long format
 
@@ -65,7 +69,7 @@ corn_futures <- ggplot(compare_long, aes(x = stringr::str_wrap(contracts,3),
 
 # ggsave(corn_july20, file = here("Images", "corn_forward_curve_20.png"), width = 8, height = 4)
 # ggsave(corn_june21, file = here("Images", "corn_forward_curve_21.png"),  width = 8, height = 4)
-# ggsave(corn_futures, file = here("Images", "corn_forward_curve.png"), width = 8, height = 4)  
+# ggsave(corn_futures, file = here("Images", "corn_forward_curve.png"), width = 8, height = 4)
 
 
 ###########################################################
@@ -73,7 +77,7 @@ corn_futures <- ggplot(compare_long, aes(x = stringr::str_wrap(contracts,3),
 ###########################################################
 
 # load data to recreate Combined sheet
-    # make sure Excel file is not opened. You will get an error otherwise
+# make sure Excel file is not opened. You will get an error otherwise
 crude_spot <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), 
                          # looks at second sheet, skips first two lines
                          sheet = 2, skip = 2) %>% 
@@ -84,9 +88,9 @@ crude_spot <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"),
   select(time, spot) #select relevant columns
 
 # create data_cleaning() function that takes in `sheet` as an argument,
-    # cleans the var names, 
-    # makes sure 'time' is recognized as a date format, 
-    # filters to the relevant dates, and select  the relevant columns only
+# cleans the var names, 
+# makes sure 'time' is recognized as a date format, 
+# filters to the relevant dates, and select  the relevant columns only
 
 data_cleaning <- function(sheet){
   sheet <- sheet %>% clean_names() %>%
@@ -96,7 +100,7 @@ data_cleaning <- function(sheet){
 }
 
 # export only nov18 to mar19 sheets (used in analysis) and apply the data_cleaning() function
-  # rename the column 'last' to the date/yr
+# rename the column 'last' to the date/yr
 nov_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), 
                                    sheet = "Nov 18")) %>% rename(nov_18 = last)
 dec_18 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), 
@@ -109,13 +113,13 @@ mar_19 <- data_cleaning(read_excel(here("Data", "Crude Futures Data 2018 - 2019.
                                    sheet = "Mar 19")) %>% rename(mar_19 = last)
 
 # merge multiple data frames together in one line 
-  # https://stackoverflow.com/questions/14096814/merging-a-lot-of-data-frames
+# https://stackoverflow.com/questions/14096814/merging-a-lot-of-data-frames
 combined <- Reduce(function(x, y) merge(x, y, all=TRUE), 
                    list(crude_spot, nov_18, dec_18, jan_19, feb_19, mar_19))
 
 # do the same as above but for 2021 data
-    # make sure Excel file is not opened. You will get an error. 
-crude_spot21 <- read_excel(here("Data", "Crude Futures Data 2018 - 2019.xlsx"), 
+# make sure Excel file is not opened. You will get an error. 
+crude_spot21 <- read_excel(here("Data", "Crude Futures Data 2021.xlsx"), 
                            sheet = 2, skip = 2) %>%
   clean_names() %>%
   rename(spot = cushing_ok_wti_spot_price_fob_dollars_per_barrel) %>%
@@ -142,16 +146,17 @@ nov_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"
                                      sheet = "Nov 21")) %>% rename(nov_21 = last)
 dec_21 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), 
                                      sheet = "Dec 21")) %>% rename(dec_21 = last)
-
+jan_22 <- data_cleaning21(read_excel(here("Data", "Crude Futures Data 2021.xlsx"), 
+                                     sheet = "Jan 22")) %>% rename(jan_22 = last)
 # combine 2021 dataframes
 combined_21 <- Reduce(function(x, y) merge(x, y, all=TRUE), 
-                      list(crude_spot21, aug_21, sep_21, oct_21, nov_21, dec_21))
+                      list(crude_spot21, aug_21, sep_21, oct_21, nov_21, dec_21, jan_22))
 
 # create graph in p.20 of notes
 # Slight diff in Excel: Dr. Vercammen inserted the avg of previous day and following 
-  # day's spot prices for public holidays/non trading days. 
-  # In R, I just dropped if missing so that the line graph is smooth. 
-  # Calculations are very similar
+# day's spot prices for public holidays/non trading days. 
+# In R, I just dropped if missing so that the line graph is smooth. 
+# Calculations are very similar
 
 # WTI Basis and December 2021 Futures for Contango Scenario
 wti_basis_contango <- combined %>% 
@@ -189,7 +194,7 @@ forward_curve <- combined %>%
 forward_contango <- ggplot(forward_curve, aes(x = time, y = futures)) + 
   geom_col(fill = "lightblue") + 
   coord_cartesian(ylim = c(69,69.75)) + # set the coordinates to match excel graph
-  labs(title = "Forward Curve for WTI Crude Oil: Oct 22, 2018", subtitle = "Last trading day for November contract", y = "$/barrel", x = "Date") +
+  labs(title = "Forward Curve for WTI Crude Oil: Oct 22, 2018", subtitle = "Last trading day for November contract", y = "$/barrel", x = "Contract Maturity") +
   scale_x_date(date_labels = "%b %y") + 
   theme_classic() +
   geom_text(aes(label = futures), vjust = -0.5, size = 3.5)
@@ -225,7 +230,7 @@ wti_futures_backwardation
 # Forward curve for oil - Aug 20, 2021
 forward_curve_back <- combined_21 %>% 
   filter(time == "2021-08-20") %>%
-  select(sep_21, oct_21, nov_21, dec_21) %>%
+  select(sep_21, oct_21, nov_21, dec_21, jan_22) %>%
   pivot_longer(everything(), 
                names_to = "time",
                values_to = "futures") %>%
@@ -236,7 +241,7 @@ forward_backwardation <- ggplot(forward_curve_back, aes(x = time, y = futures)) 
   geom_col(fill = "lightblue") + 
   coord_cartesian(ylim = c(61,62.5)) + 
   labs(title = "Forward Curve for WTI Crude Oil: Aug 20, 2021", 
-       subtitle = "Last trading day for September contract", y = "$/barrel", x = "Date") +
+       subtitle = "Last trading day for September contract", y = "$/barrel", x = "Contract Maturity") +
   scale_x_date(date_labels = "%b %y") + 
   theme_classic() +
   geom_text(aes(label = futures), vjust = -0.5, size = 3.5)
@@ -246,6 +251,24 @@ forward_backwardation
 # ggsave(wti_futures_backwardation, file = here("Images", "wti_futures_back.png"), width = 8)
 # ggsave(forward_backwardation, file = here("Images", "forward_backwardation.png"))
 
+###########################################################
+# Construct Roll example tables
+###########################################################
+
+data1 <- read.csv(here("Data", "example_data_1.csv"), header=TRUE, sep=",", stringsAsFactors = FALSE) 
+
+data2 <- read.csv(here("Data", "example_data_2.csv"), header=TRUE, sep=",", stringsAsFactors = FALSE) 
+
+roll1 <- data1                                        # Duplicate vector
+roll1[is.na(roll1)] <- ""                       # Replace NA with blank
+roll1 
+
+roll2 <- data2                                        # Duplicate vector
+roll2[is.na(roll2)] <- ""                       # Replace NA with blank
+roll2 
+
+# saveRDS(roll1, here("Data", "roll1.RDS"))
+# saveRDS(roll2, here("Data", "roll2.RDS"))
 
 ###########################################################
 # Construct Sequence of Futures Joined Prices - Contango
@@ -255,12 +278,12 @@ forward_backwardation
 combined <- combined %>%
   # filter to relevant dates
   filter(time >= "2018-10-18" & time <= "2019-02-20") %>% 
-# create roll columns that calculate the difference in futures prices
+  # create roll columns that calculate the difference in futures prices
   # these are roll adjustments
-mutate(roll1 = nov_18 - dec_18,
-       roll2 = dec_18 - jan_19,
-       roll3 = jan_19 - feb_19,
-       roll4 = feb_19 - mar_19) %>%
+  mutate(roll1 = nov_18 - dec_18,
+         roll2 = dec_18 - jan_19,
+         roll3 = jan_19 - feb_19,
+         roll4 = feb_19 - mar_19) %>%
   # calculate index of each roll - last date the contract trades for 
   # max(which(!is.na(data$roll1))) gives us the index of the largest non NA value in roll1 
   mutate(i_roll1 = max(which(!is.na(roll1))),
@@ -281,10 +304,10 @@ mutate(roll1 = nov_18 - dec_18,
 # calc value of the cumulative roll (_con to indicate contango)
 # it was easier/saves space to save these values outside the dataframe
 # max(which(!is.na(combined$roll1))) gives the index number for the last non-NA in roll1 
-  # which is the price of back contract (nov18) - price of front contract (dec18) 
-  # at the last date of trade of back contract
+# which is the price of back contract (nov18) - price of front contract (dec18) 
+# at the last date of trade of back contract
 # for the next roll, we take the back contract (dec18) - front contract (jan19) on the last
-  # trading date of back contract PLUS the first roll yield since it's cumulative 
+# trading date of back contract PLUS the first roll yield since it's cumulative 
 cum_roll1_con <- combined$roll1[max(which(!is.na(combined$roll1)))]
 cum_roll2_con <- cum_roll1_con + combined$roll2[max(which(!is.na(combined$roll2)))] 
 cum_roll3_con <- cum_roll2_con + combined$roll3[max(which(!is.na(combined$roll3)))]
@@ -301,7 +324,7 @@ combined <- combined %>%
                                          ifelse(index < i_roll4, cum_roll3_con, cum_roll4_con))))) %>%
   # add cum_roll to current price to get the joined price
   mutate(joined = current + cum_roll)
-  
+
 # saveRDS(combined, here("Data", "combined.RDS"))
 
 ###########################################################
